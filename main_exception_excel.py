@@ -6,24 +6,33 @@ from ortools.sat.python import cp_model
 model = cp_model.CpModel()
 
 # 定義參數
-month = 9
-people_list = ['小明', '小花', '小白', '小城', '小胖']
-num_people = len(people_list)
-num_days = 25  # 計劃的天數
-
 # 每天最多可休息人數列表
+# 固定休假日
+output_file = 'A-2.xlsx'
 max_rest_per_day = [
-    2,3,1,3,1,3,1,1,1,2,1,1,3,2,2,3,3,3,2,3,1,2,2,3,1
+    3, 2, 2, 2, 2, 2, 3, 3, 2, 2, 2, 2, 2, 3, 3, 2, 2, 1, 3, 2, 3, 3, 2, 2, 2, 2, 2, 3, 4, 2
+]
+people_list = [
+    'A人', 'B人', 'C人', 'D人', 'E人', 'F人', 'G人'
+]
+mandatory_off = [
+    [10],
+    [24, 27, 28],
+    [2, 9, 15],
+    [16, 17, 19],
+    [11, 19, 25],
+    [19, 20, 21, 22, 23],
+    [15, 16, 17],
 ]
 
-# 固定休假日
-mandatory_off = [
-    [1, 6, 14],  # 小明的固定休假日
-    [4, 16, 20], # 小花的固定休假日
-    [2, 10, 18], # 小白的固定休假日
-    [5, 15, 21], # 小城的固定休假日
-    [3, 12, 19]  # 小胖的固定休假日
-]
+# 定義相關變數
+consecutive_days_limit = 4  # 正常情況下連續工作天數不能超過4天
+exception_limit = 1  # 每個人最多可以破例1次
+max_consecutive_days_with_exception = 5  # 破例時最多連續上班5天
+
+month = 9
+num_people = len(people_list)
+num_days = 30  # 計劃的天數
 
 # 定義變量：work[p][d] 表示第 p 個人在第 d 天是否上班 (1 表示上班，0 表示休息)
 work = []
@@ -37,29 +46,30 @@ for p in range(num_people):
 for p in range(num_people):
     model.Add(sum(1 - work[p][d] for d in range(num_days)) == 10)
 
-# 約束條件 2：連續上班不能超過 4 天 (若無解可以寬限到 5 天一次)
-# 為每個人定義一個 "破例" 的布林變量，表示是否允許一次連續 5 天上班
-exception_used = []
+# 約束條件 2：連續上班不能超過 4 天
 for p in range(num_people):
-    exception_used.append(model.NewBoolVar(f'exception_used_{p}'))
+    # 建立一個追踪是否破例的布林變量列表
+    exception_used = [model.NewBoolVar(f"exception_used_{p}_{d}") for d in range(num_days - max_consecutive_days_with_exception)]
 
-for p in range(num_people):  # 對每個專員進行處理
-    for d in range(num_days - 4):  # 遍歷可以開始的工作天數，檢查 5 天內的狀況
-        # 生成約束條件，表示在這 5 天內不能有超過 4 天上班
-        five_day_sum = sum(work[p][d + i] for i in range(5))
+    # 每個人最多只能破例 exception_limit 次
+    model.Add(sum(exception_used) <= exception_limit)
 
-        # 使用布林變量來控制是否允許破例
-        model.Add(five_day_sum <= 4).OnlyEnforceIf(exception_used[p].Not())  # 如果還沒使用破例，遵守最多 4 天的限制
-        model.Add(five_day_sum == 5).OnlyEnforceIf(exception_used[p])  # 如果使用了破例，允許這 5 天內剛好 5 天上班
+    for d in range(num_days - max_consecutive_days_with_exception):
+        # 正常情況下，確保每 consecutive_days_limit+1 天內最多有 consecutive_days_limit 天是工作
+        normal_condition = sum(work[p][d + i] for i in range(consecutive_days_limit + 1)) <= consecutive_days_limit
 
-# 每個人只能使用一次破例，即最多允許一次連續 5 天上班
-model.Add(sum(exception_used[p] for p in range(num_people)) <= 1)
+        # 破例情況，允許一次最多連續上班 max_consecutive_days_with_exception 天
+        exception_condition = sum(work[p][d + i] for i in range(max_consecutive_days_with_exception)) <= max_consecutive_days_with_exception
 
-# 確保沒有跨區間的 6 天連續上班情況
-for p in range(num_people):
-    for d in range(num_days - 5):  # 這次檢查的是跨越 6 天的連續上班情況
-        six_day_sum = sum(work[p][d + i] for i in range(6))
-        model.Add(six_day_sum <= 5)  # 確保 6 天內最多有 5 天上班
+        # 正常情況：如果沒有使用破例，則執行正常條件
+        model.Add(normal_condition).OnlyEnforceIf(exception_used[d].Not())
+
+        # 破例情況：如果使用了破例，則允許破例條件
+        model.Add(exception_condition).OnlyEnforceIf(exception_used[d])
+
+    # 添加總的約束，無論是否破例，總的連續上班天數不能超過 max_consecutive_days_with_exception
+    for d in range(num_days - max_consecutive_days_with_exception):
+        model.Add(sum(work[p][d + i] for i in range(max_consecutive_days_with_exception + 1)) <= max_consecutive_days_with_exception)
 
 
 # 約束條件 3：不可單獨上班一天，第一天和最後一天例外
@@ -127,10 +137,10 @@ if status == cp_model.FEASIBLE or status == cp_model.OPTIMAL:
                 cell.fill = fill_vacation  # 休假
 
     # 保存 Excel 文件
-    excel_file = './schedule_output.xlsx'
+    excel_file = f'./{output_file}'
     wb.save(excel_file)
 
     # 文件路徑返回
     excel_file
 else:
-    "No solution found within the time limit."
+    print("No solution found within the time limit.")

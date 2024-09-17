@@ -1,0 +1,9 @@
+3	2	2	2	2	2	3	3	2	2	2	2	2	3	3	2	2	1	3	2	3	3	2	2	2	2	2	3	4	2
+---
+A	A	A	A	A	A	A	A	A	休	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A
+A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	休	A	A	休	休	A	A
+A	休	A	A	A	A	A	A	休	A	A	A	A	A	休	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A
+A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	休	休	A	休	A	A	A	A	A	A	A	A	A	A	A
+A	A	A	A	A	A	A	A	A	A	休	A	A	A	A	A	A	A	休	A	A	A	A	A	休	A	A	A	A	A
+A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	A	休	休	休	休	休	A	A	A	A	A	A	A
+A	A	A	A	A	A	A	A	A	A	A	A	A	A	休	休	休	A	A	A	A	A	A	A	A	A	A	A	A	A

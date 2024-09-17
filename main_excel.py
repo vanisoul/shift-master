@@ -6,24 +6,28 @@ from ortools.sat.python import cp_model
 model = cp_model.CpModel()
 
 # 定義參數
-month = 9
-people_list = ['小明', '小花', '小白', '小城', '小胖']
-num_people = len(people_list)
-num_days = 25  # 計劃的天數
-
 # 每天最多可休息人數列表
+# 固定休假日
+output_file = 'A-2.xlsx'
 max_rest_per_day = [
-    2,3,1,3,1,3,1,1,1,2,1,1,3,2,2,3,3,3,2,3,1,2,2,3,1
+    3, 2, 2, 2, 2, 2, 3, 3, 2, 2, 2, 2, 2, 3, 3, 2, 2, 1, 3, 2, 3, 3, 2, 2, 2, 2, 2, 3, 4, 2
+]
+people_list = [
+    'A人', 'B人', 'C人', 'D人', 'E人', 'F人', 'G人'
+]
+mandatory_off = [
+    [10],
+    [24, 27, 28],
+    [2, 9, 15],
+    [16, 17, 19],
+    [11, 19, 25],
+    [19, 20, 21, 22, 23],
+    [15, 16, 17],
 ]
 
-# 固定休假日
-mandatory_off = [
-    [1, 6, 14],  # 小明的固定休假日
-    [4, 16, 20], # 小花的固定休假日
-    [2, 10, 18], # 小白的固定休假日
-    [5, 15, 21], # 小城的固定休假日
-    [3, 12, 19]  # 小胖的固定休假日
-]
+month = 9
+num_people = len(people_list)
+num_days = 30  # 計劃的天數
 
 # 定義變量：work[p][d] 表示第 p 個人在第 d 天是否上班 (1 表示上班，0 表示休息)
 work = []
@@ -38,9 +42,10 @@ for p in range(num_people):
     model.Add(sum(1 - work[p][d] for d in range(num_days)) == 10)
 
 # 約束條件 2：連續上班不能超過 4 天
+consecutive_days_limit = 4
 for p in range(num_people):
-    for d in range(num_days - 4):
-        model.Add(sum(work[p][d + i] for i in range(5)) <= 4)
+    for d in range(num_days - consecutive_days_limit):
+        model.Add(sum(work[p][d + i] for i in range(consecutive_days_limit+1)) <= consecutive_days_limit)
 
 # 約束條件 3：不可單獨上班一天，第一天和最後一天例外
 for p in range(num_people):
@@ -107,10 +112,10 @@ if status == cp_model.FEASIBLE or status == cp_model.OPTIMAL:
                 cell.fill = fill_vacation  # 休假
 
     # 保存 Excel 文件
-    excel_file = './schedule_output.xlsx'
+    excel_file = f'./{output_file}'
     wb.save(excel_file)
 
     # 文件路徑返回
     excel_file
 else:
-    "No solution found within the time limit."
+    print("No solution found within the time limit.")
