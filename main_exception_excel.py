@@ -8,25 +8,26 @@ model = cp_model.CpModel()
 # 定義參數
 # 每天最多可休息人數列表
 # 固定休假日
-output_file = 'D-5.xlsx'
+output_file = 'D-4(V2).xlsx'
 max_rest_per_day = [
-    3, 1, 1, 1, 1, 2, 2, 3, 1, 1, 2, 1, 1, 2, 3, 1, 2, 2, 2, 1, 2, 3, 1, 1, 1, 1, 2, 2, 3, 1
+    2, 1, 2, 1, 2, 2, 2, 2, 2, 1, 2, 1, 1, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 1, 1, 2, 2, 1
 ]
 people_list = [
     'A人', 'B人', 'C人', 'D人', 'E人'
 ]
 mandatory_off = [
-    [1, 30],
-    [18, 19, 20, 21, 22, 23],
-    [3, 10, 17],
-    [13, 14, 15],
-    [2, 14, 15],
+    [],
+    [1, 10, 11],
+    [4, 17, 18],
+    [1, 2, 3],
+    [14, 15, 22],
 ]
 
 # 定義相關變數
 consecutive_days_limit = 4  # 正常情況下連續工作天數不能超過4天
 exception_limit = 0  # 每個人最多可以破例1次
 max_consecutive_days_with_exception = 5  # 破例時最多連續上班5天
+max_consecutive_rest_days = 2  # 非固定休假最多允許連續休息的天數
 
 month = 9
 num_people = len(people_list)
@@ -83,9 +84,19 @@ for p in range(num_people):
     for day in mandatory_off[p]:
         model.Add(work[p][day - 1] == 0)
 
-# 新增的約束條件 5：每天最多可休息的人數，使用 max_rest_per_day 列表
+# 約束條件 5：每天最多可休息的人數，使用 max_rest_per_day 列表
 for d in range(num_days):
     model.Add(sum(1 - work[p][d] for p in range(num_people)) <= max_rest_per_day[d])
+
+# # 約束條件 6：非固定休假不超過連續兩天
+for p in range(num_people):  # 對每個專員進行處理
+    for d in range(num_days - max_consecutive_rest_days):  # 只需要檢查從第 1 天到倒數第 3 天，這樣可以檢查 3 天區間
+        # 我們檢查連續 3 天是否有超過兩天的 "非固定休假"
+        non_mandatory_off_sum = sum(
+            (1 - work[p][d + i]) for i in range(max_consecutive_rest_days + 1) if (d + i + 1) not in mandatory_off[p]
+        )
+        model.Add(non_mandatory_off_sum <= max_consecutive_rest_days)  # 確保非固定休假不超過連續兩天
+
 
 # 創建求解器
 solver = cp_model.CpSolver()
