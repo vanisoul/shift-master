@@ -8,26 +8,24 @@ model = cp_model.CpModel()
 # 定義參數
 # 每天最多可休息人數列表
 # 固定休假日
-output_file = 'A-2.xlsx'
+output_file = 'A-3.xlsx'
 max_rest_per_day = [
-    3, 2, 2, 2, 2, 2, 3, 3, 2, 2, 2, 2, 2, 3, 3, 2, 2, 1, 3, 2, 3, 3, 2, 2, 2, 2, 2, 3, 4, 2
+    2, 1, 1, 1, 1, 2, 1, 2, 1, 1, 2, 1, 1, 1, 2, 1, 2, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 2, 2, 1
 ]
 people_list = [
-    'A人', 'B人', 'C人', 'D人', 'E人', 'F人', 'G人'
+    'A人', 'B人', 'C人', 'D人'
 ]
 mandatory_off = [
-    [10],
-    [24, 27, 28],
-    [2, 9, 15],
-    [16, 17, 19],
-    [11, 19, 25],
-    [19, 20, 21, 22, 23],
-    [15, 16, 17],
+    [1, 16, 17],
+    [4, 19, 20, 21, 22, 23, 24],
+    [1, 9, 15],
+    [14, 15, 21],
 ]
 
 month = 9
 num_people = len(people_list)
 num_days = 30  # 計劃的天數
+consecutive_days_limit = 7 # 連續上班不能超過 4 天
 
 # 定義變量：work[p][d] 表示第 p 個人在第 d 天是否上班 (1 表示上班，0 表示休息)
 work = []
@@ -42,7 +40,6 @@ for p in range(num_people):
     model.Add(sum(1 - work[p][d] for d in range(num_days)) == 10)
 
 # 約束條件 2：連續上班不能超過 4 天
-consecutive_days_limit = 4
 for p in range(num_people):
     for d in range(num_days - consecutive_days_limit):
         model.Add(sum(work[p][d + i] for i in range(consecutive_days_limit+1)) <= consecutive_days_limit)
